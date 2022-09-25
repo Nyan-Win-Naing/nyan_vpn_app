@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nyan_vpn_app/blocs/home_bloc.dart';
+import 'package:nyan_vpn_app/data/vos/server_vo.dart';
+import 'package:nyan_vpn_app/dummy/dummy_server_list.dart';
+import 'package:nyan_vpn_app/pages/server_page.dart';
+import 'package:nyan_vpn_app/resources/colors.dart';
 import 'package:nyan_vpn_app/resources/dimens.dart';
 import 'package:nyan_vpn_app/utils/vpn_config.dart';
 import 'package:nyan_vpn_app/viewitems/network_info_view.dart';
@@ -51,7 +55,7 @@ class _HomePageState extends State<HomePage> {
       EasyLoading.dismiss();
     } else {
       EasyLoading.show(
-        status: 'loading...',
+        status: '${stage?.name}...',
       );
     }
   }
@@ -59,7 +63,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => HomeBloc(),
+      create: (context) => HomeBloc(openVpn),
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
@@ -68,7 +72,7 @@ class _HomePageState extends State<HomePage> {
           elevation: 2,
           title: Row(
             mainAxisSize: MainAxisSize.min,
-            children: [
+            children: const [
               Icon(
                 Icons.vpn_key_outlined,
                 color: Color.fromRGBO(81, 91, 226, 1.0),
@@ -79,12 +83,54 @@ class _HomePageState extends State<HomePage> {
           ),
           actions: [
             Padding(
-              padding: EdgeInsets.only(right: MARGIN_MEDIUM),
-              child: Icon(
-                Icons.location_on,
-                color: Colors.black,
+              padding: const EdgeInsets.only(right: MARGIN_MEDIUM),
+              child: GestureDetector(
+                onTap: () {
+                  _navigateToServerPage(context);
+                },
+                child: const Icon(
+                  Icons.location_on,
+                  color: Colors.black,
+                ),
               ),
             ),
+            // Builder(
+            //   builder: (context) {
+            //     return PopupMenuButton<int>(
+            //       onSelected: (int id) {
+            //         var bloc = Provider.of<HomeBloc>(context, listen: false);
+            //         if(bloc.vpnStage == "connected") {
+            //           print("Previous VPN is Connected.............");
+            //           showConfirmDialog(context, bloc);
+            //         }
+            //         bloc.onChooseLocation(id);
+            //       },
+            //       icon: Icon(
+            //         Icons.location_on,
+            //         color: Colors.black,
+            //       ),
+            //       itemBuilder: (context) => dummyServerList.map((serverVo) {
+            //         return PopupMenuItem(
+            //           value: serverVo.id ?? 0,
+            //           child: Row(
+            //             mainAxisSize: MainAxisSize.min,
+            //             children: [
+            //               Image.asset(
+            //                 serverVo.flag ?? "",
+            //                 width: 25,
+            //               ),
+            //               SizedBox(width: MARGIN_MEDIUM),
+            //               Text(
+            //                 serverVo.countryName ?? "",
+            //                 style: GoogleFonts.ubuntu(),
+            //               ),
+            //             ],
+            //           ),
+            //         );
+            //       }).toList(),
+            //     );
+            //   }
+            // ),
           ],
         ),
         body: Builder(builder: (context) {
@@ -107,26 +153,25 @@ class _HomePageState extends State<HomePage> {
                     selector: (context, bloc) => bloc.byteIn ?? 0,
                     builder: (context, byteIn, child) =>
                         Selector<HomeBloc, double>(
-                          selector: (context, bloc) => bloc.byteOut ?? 0,
-                          builder: (context, byteOut, child) =>
-                              Padding(
-                                padding:
-                                const EdgeInsets.symmetric(horizontal: MARGIN_MEDIUM_2),
-                                child: DownloadUploadSpeedSectionView(
-                                  byteIn: byteIn,
-                                  byteOut: byteOut,
-                                ),
-                              ),
+                      selector: (context, bloc) => bloc.byteOut ?? 0,
+                      builder: (context, byteOut, child) => Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: MARGIN_MEDIUM_2),
+                        child: DownloadUploadSpeedSectionView(
+                          byteIn: byteIn,
+                          byteOut: byteOut,
                         ),
+                      ),
+                    ),
                   ),
                   SizedBox(height: MARGIN_XLARGE),
+
                   Selector<HomeBloc, String>(
                       selector: (context, bloc) => bloc.vpnStage ?? "",
                       builder: (context, vpnStage, child) {
                         print(
                             "VPN Stage from Page Level Widget is ============> $vpnStage");
                         return VpnButtonSectionView(
-                          openVpn: openVpn,
                           vpnStage: vpnStage,
                         );
                       }),
@@ -150,13 +195,73 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+
+  void _navigateToServerPage(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ServerPage(openVpn: openVpn),
+      ),
+    );
+  }
+
+  void showConfirmDialog(BuildContext context, HomeBloc bloc) {
+    Widget okButton = TextButton(
+      onPressed: () {
+        bloc.onTapDisconnect();
+      },
+      child: Text(
+        "OK",
+        style: GoogleFonts.ubuntu(
+          fontWeight: FontWeight.w500,
+          color: PRIMARY_COLOR,
+        ),
+      ),
+    );
+
+    Widget cancelButton = TextButton(
+      onPressed: () {
+        Navigator.pop(context);
+      },
+      child: Text(
+        "CANCEL",
+        style: GoogleFonts.ubuntu(
+          fontWeight: FontWeight.w500,
+          color: Color.fromRGBO(0, 0, 0, 0.5),
+        ),
+      ),
+    );
+
+    AlertDialog alert = AlertDialog(
+      title: Text(
+        "Confirmation",
+        style: GoogleFonts.ubuntu(
+          fontSize: TEXT_REGULAR_2X,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      content: Text(
+        "Do you want to connect this location?",
+        style: GoogleFonts.ubuntu(),
+      ),
+      actions: [
+        cancelButton,
+        okButton,
+      ],
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return alert;
+      },
+    );
+  }
 }
 
 class DownloadUploadSpeedSectionView extends StatelessWidget {
-
   double byteIn;
   double byteOut;
-
 
   DownloadUploadSpeedSectionView({required this.byteIn, required this.byteOut});
 
@@ -173,10 +278,8 @@ class DownloadUploadSpeedSectionView extends StatelessWidget {
 }
 
 class ByteInfoView extends StatelessWidget {
-
   final String label;
   final double data;
-
 
   ByteInfoView({required this.label, required this.data});
 
@@ -274,10 +377,9 @@ class ConnectStatusView extends StatelessWidget {
 }
 
 class VpnButtonSectionView extends StatelessWidget {
-  OpenVPN openVpn;
   String vpnStage;
 
-  VpnButtonSectionView({required this.openVpn, required this.vpnStage});
+  VpnButtonSectionView({required this.vpnStage});
 
   @override
   Widget build(BuildContext context) {
@@ -286,17 +388,11 @@ class VpnButtonSectionView extends StatelessWidget {
         InkWell(
           onTap: () {
             if (vpnStage == "disconnected") {
-              openVpn.connect(
-                sgConfig,
-                "Singapore",
-                username: "tcpvpn.com-NyanWinNaing",
-                password: "NyanWinNaing19",
-                bypassPackages: [],
-                certIsRequired: false,
-              );
-            } else {
-              openVpn.disconnect();
               var bloc = Provider.of<HomeBloc>(context, listen: false);
+              bloc.onTapConnect();
+            } else {
+              var bloc = Provider.of<HomeBloc>(context, listen: false);
+              bloc.onTapDisconnect();
               bloc.clearDuration();
             }
           },
@@ -402,10 +498,10 @@ class AppBarTitleView extends StatelessWidget {
   Widget build(BuildContext context) {
     return RichText(
       text: TextSpan(
-        text: "Nyan VPN",
+        text: "NyanVPN",
         style: GoogleFonts.ubuntu(
-          // color: Colors.black,
-          color: Color.fromRGBO(81, 91, 226, 1.0),
+          color: Colors.black,
+          // color: Color.fromRGBO(81, 91, 226, 1.0),
           fontWeight: FontWeight.w500,
           fontSize: TEXT_REGULAR_3X,
         ),
