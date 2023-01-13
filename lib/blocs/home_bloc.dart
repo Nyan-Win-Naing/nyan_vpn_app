@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dart_ipify/dart_ipify.dart';
 import 'package:flutter/foundation.dart';
 import 'package:nyan_vpn_app/data/models/ip_model.dart';
@@ -23,13 +25,34 @@ class HomeBloc extends ChangeNotifier {
   double? byteIn = 0;
   double? byteOut = 0;
   List<ServerVO>? serverList;
+  bool isInternetConnected = true;
 
   /// Models
   IpModel _model = IpModelImpl();
 
   HomeBloc(OpenVPN openVpn) {
     this.openVpn = openVpn;
+    checkInternetConnectivity();
     loadNetworkInfo();
+  }
+
+  void onTapCloseAlert() {
+    isInternetConnected = true;
+    notifyListeners();
+  }
+
+  void checkInternetConnectivity() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+        isInternetConnected = true;
+        notifyListeners();
+      }
+    } on SocketException catch (_) {
+      print('not connected');
+      isInternetConnected = false;
+      notifyListeners();
+    }
   }
 
   void loadNetworkInfo() async {
@@ -42,6 +65,7 @@ class HomeBloc extends ChangeNotifier {
         isp = response.isp;
         asName = response.as?.name;
         domain = response.as?.domain;
+        print("Country is =========> ${response.location?.country}");
         print("Country is =========> $country");
         dummyServerList.forEach((serverVo) {
           if (serverVo.countryName == country) {

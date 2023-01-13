@@ -86,15 +86,26 @@ class ServerItemView extends StatelessWidget {
     );
 
     AlertDialog alert = AlertDialog(
-      contentPadding: EdgeInsets.symmetric(horizontal: MARGIN_MEDIUM_2, vertical: MARGIN_CARD_MEDIUM_2),
+      contentPadding: EdgeInsets.symmetric(
+          horizontal: MARGIN_MEDIUM_2, vertical: MARGIN_CARD_MEDIUM_2),
       title: Image.asset(
         serverVo?.flag ?? "",
         height: 50,
       ),
-      content: Text(
-        "Do you want to connect ${serverVo?.countryName ?? ""}?",
+      content: RichText(
         textAlign: TextAlign.center,
-        style: GoogleFonts.ubuntu(),
+        text: TextSpan(
+          text: "Are you sure to connect\n",
+          style: GoogleFonts.ubuntu(
+            fontSize: TEXT_REGULAR_2X,
+            color: Colors.black,
+            height: 1.5,
+          ),
+          children: [
+            TextSpan(text: serverVo?.countryName ?? "", style: GoogleFonts.ubuntu(fontWeight: FontWeight.w600)),
+            TextSpan(text: " ?"),
+          ],
+        ),
       ),
       actions: [
         cancelButton,

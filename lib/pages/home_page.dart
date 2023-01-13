@@ -1,13 +1,11 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:nyan_vpn_app/blocs/home_bloc.dart';
-import 'package:nyan_vpn_app/data/vos/server_vo.dart';
-import 'package:nyan_vpn_app/dummy/dummy_server_list.dart';
 import 'package:nyan_vpn_app/pages/server_page.dart';
 import 'package:nyan_vpn_app/resources/colors.dart';
 import 'package:nyan_vpn_app/resources/dimens.dart';
-import 'package:nyan_vpn_app/utils/vpn_config.dart';
 import 'package:nyan_vpn_app/viewitems/network_info_view.dart';
 import 'package:openvpn_flutter/openvpn_flutter.dart';
 import 'package:provider/provider.dart';
@@ -61,7 +59,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext buildContext) {
     return ChangeNotifierProvider(
       create: (context) => HomeBloc(openVpn),
       child: Scaffold(
@@ -135,61 +133,133 @@ class _HomePageState extends State<HomePage> {
         ),
         body: Builder(builder: (context) {
           bloc = Provider.of<HomeBloc>(context, listen: false);
-          return Container(
-            child: RefreshIndicator(
-              color: Color.fromRGBO(27, 204, 115, 1.0),
-              onRefresh: () async {
-                bloc?.loadNetworkInfo();
-              },
-              child: ListView(
+          return Selector<HomeBloc, bool>(
+            selector: (context, bloc) => bloc.isInternetConnected,
+            builder: (context, isInternetConnected, child) {
+              return Stack(
                 children: [
-                  SizedBox(height: MARGIN_LARGE),
-                  // Selector<HomeBloc, String>(
-                  //   selector: (context, bloc) => bloc.ip ?? "N/A",
-                  //   builder: (context, ip, child) =>
-                  //       IpAddressSectionView(ip: ip),
-                  // ),
-                  Selector<HomeBloc, double>(
-                    selector: (context, bloc) => bloc.byteIn ?? 0,
-                    builder: (context, byteIn, child) =>
-                        Selector<HomeBloc, double>(
-                      selector: (context, bloc) => bloc.byteOut ?? 0,
-                      builder: (context, byteOut, child) => Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: MARGIN_MEDIUM_2),
-                        child: DownloadUploadSpeedSectionView(
-                          byteIn: byteIn,
-                          byteOut: byteOut,
-                        ),
+                  Container(
+                    child: RefreshIndicator(
+                      color: Color.fromRGBO(27, 204, 115, 1.0),
+                      onRefresh: () async {
+                        bloc?.loadNetworkInfo();
+                      },
+                      child: ListView(
+                        children: [
+                          SizedBox(height: MARGIN_LARGE),
+                          // Selector<HomeBloc, String>(
+                          //   selector: (context, bloc) => bloc.ip ?? "N/A",
+                          //   builder: (context, ip, child) =>
+                          //       IpAddressSectionView(ip: ip),
+                          // ),
+                          Selector<HomeBloc, double>(
+                            selector: (context, bloc) => bloc.byteIn ?? 0,
+                            builder: (context, byteIn, child) =>
+                                Selector<HomeBloc, double>(
+                              selector: (context, bloc) => bloc.byteOut ?? 0,
+                              builder: (context, byteOut, child) => Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: MARGIN_MEDIUM_2),
+                                child: DownloadUploadSpeedSectionView(
+                                  byteIn: byteIn,
+                                  byteOut: byteOut,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: MARGIN_XLARGE),
+
+                          Selector<HomeBloc, String>(
+                              selector: (context, bloc) => bloc.vpnStage ?? "",
+                              builder: (context, vpnStage, child) {
+                                print(
+                                    "VPN Stage from Page Level Widget is ============> $vpnStage");
+                                return VpnButtonSectionView(
+                                  vpnStage: vpnStage,
+                                );
+                              }),
+                          SizedBox(height: MARGIN_CARD_MEDIUM_2),
+                          Selector<HomeBloc, String>(
+                            selector: (context, bloc) =>
+                                bloc.duration ?? "00:00:00",
+                            builder: (context, duration, child) =>
+                                TimerSectionView(duration: duration),
+                          ),
+                          // SizedBox(height: MARGIN_MEDIUM_2),
+                          SizedBox(height: MARGIN_XLARGE),
+                          Consumer<HomeBloc>(
+                            builder: (context, bloc, child) =>
+                                NetworkInfoSectionView(bloc: bloc),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  SizedBox(height: MARGIN_XLARGE),
-
-                  Selector<HomeBloc, String>(
-                      selector: (context, bloc) => bloc.vpnStage ?? "",
-                      builder: (context, vpnStage, child) {
-                        print(
-                            "VPN Stage from Page Level Widget is ============> $vpnStage");
-                        return VpnButtonSectionView(
-                          vpnStage: vpnStage,
-                        );
-                      }),
-                  SizedBox(height: MARGIN_CARD_MEDIUM_2),
-                  Selector<HomeBloc, String>(
-                    selector: (context, bloc) => bloc.duration ?? "00:00:00",
-                    builder: (context, duration, child) =>
-                        TimerSectionView(duration: duration),
-                  ),
-                  // SizedBox(height: MARGIN_MEDIUM_2),
-                  SizedBox(height: MARGIN_XLARGE),
-                  Consumer<HomeBloc>(
-                    builder: (context, bloc, child) =>
-                        NetworkInfoSectionView(bloc: bloc),
-                  ),
+                  Visibility(
+                    visible: !isInternetConnected,
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: Container(
+                        width: MediaQuery.of(context).size.width * 2 / 3,
+                        padding: EdgeInsets.symmetric(
+                          vertical: MARGIN_MEDIUM_2,
+                          horizontal: MARGIN_MEDIUM_2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(MARGIN_MEDIUM),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color.fromRGBO(0, 0, 0, 0.1),
+                              spreadRadius: 2,
+                              blurRadius: 3,
+                              offset: Offset(0, 2),
+                            )
+                          ],
+                        ),
+                        child: Stack(
+                          children: [
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Image.asset(
+                                  "assets/not_found.png",
+                                  height: 100,
+                                ),
+                                SizedBox(height: MARGIN_MEDIUM),
+                                Text(
+                                  "Please Check Your Internet Connection !",
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.ubuntu(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: TEXT_REGULAR,
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: GestureDetector(
+                                onTap: () {
+                                  HomeBloc bloc = Provider.of(context, listen: false);
+                                  bloc.onTapCloseAlert();
+                                },
+                                child: Icon(
+                                  Icons.close,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
                 ],
-              ),
-            ),
+              );
+            },
           );
         }),
       ),
@@ -201,53 +271,22 @@ class _HomePageState extends State<HomePage> {
       context,
       MaterialPageRoute(
         builder: (context) => ServerPage(openVpn: openVpn),
+        // builder: (context) => NewPage(),
       ),
     );
   }
 
-  void showConfirmDialog(BuildContext context, HomeBloc bloc) {
-    Widget okButton = TextButton(
-      onPressed: () {
-        bloc.onTapDisconnect();
-      },
-      child: Text(
-        "OK",
-        style: GoogleFonts.ubuntu(
-          fontWeight: FontWeight.w500,
-          color: PRIMARY_COLOR,
-        ),
-      ),
-    );
-
-    Widget cancelButton = TextButton(
-      onPressed: () {
-        Navigator.pop(context);
-      },
-      child: Text(
-        "CANCEL",
-        style: GoogleFonts.ubuntu(
-          fontWeight: FontWeight.w500,
-          color: Color.fromRGBO(0, 0, 0, 0.5),
-        ),
-      ),
-    );
-
+  void showInternetNotConnectedDialog(BuildContext context) {
     AlertDialog alert = AlertDialog(
-      title: Text(
-        "Confirmation",
-        style: GoogleFonts.ubuntu(
-          fontSize: TEXT_REGULAR_2X,
-          fontWeight: FontWeight.w500,
-        ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset(
+            "assets/not_found.png",
+            width: 150,
+          ),
+        ],
       ),
-      content: Text(
-        "Do you want to connect this location?",
-        style: GoogleFonts.ubuntu(),
-      ),
-      actions: [
-        cancelButton,
-        okButton,
-      ],
     );
 
     showDialog(
@@ -385,48 +424,70 @@ class VpnButtonSectionView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        InkWell(
-          onTap: () {
-            if (vpnStage == "disconnected") {
-              var bloc = Provider.of<HomeBloc>(context, listen: false);
-              bloc.onTapConnect();
-            } else {
-              var bloc = Provider.of<HomeBloc>(context, listen: false);
-              bloc.onTapDisconnect();
-              bloc.clearDuration();
-            }
-          },
-          child: Container(
-            width: 150,
-            height: 150,
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-              shape: BoxShape.circle,
-              border: Border.all(
-                width: 3,
-                color: getBorderColor(vpnStage),
-                // color: Colors.blueAccent,
-                // color: Color.fromRGBO(27, 204, 115, 1.0),
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: MARGIN_SMALL, vertical: MARGIN_SMALL),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Color.fromRGBO(81, 91, 226, 1.0),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  getIcon(vpnStage),
-                  size: MARGIN_60,
-                  color: Colors.white,
-                ),
-              ),
+        // InkWell(
+        //   onTap: () {
+        //     if (vpnStage == "disconnected") {
+        //       var bloc = Provider.of<HomeBloc>(context, listen: false);
+        //       bloc.onTapConnect();
+        //     } else {
+        //       var bloc = Provider.of<HomeBloc>(context, listen: false);
+        //       bloc.onTapDisconnect();
+        //       bloc.clearDuration();
+        //     }
+        //   },
+        //   child: Container(
+        //     width: 150,
+        //     height: 150,
+        //     decoration: BoxDecoration(
+        //       color: Colors.transparent,
+        //       shape: BoxShape.circle,
+        //       border: Border.all(
+        //         width: 3,
+        //         color: getBorderColor(vpnStage),
+        //         // color: Colors.blueAccent,
+        //         // color: Color.fromRGBO(27, 204, 115, 1.0),
+        //       ),
+        //     ),
+        //     child: Padding(
+        //       padding: const EdgeInsets.symmetric(
+        //           horizontal: MARGIN_SMALL, vertical: MARGIN_SMALL),
+        //       child: Container(
+        //         decoration: BoxDecoration(
+        //           color: Color.fromRGBO(81, 91, 226, 1.0),
+        //           shape: BoxShape.circle,
+        //         ),
+        //         child: Icon(
+        //           getIcon(vpnStage),
+        //           size: MARGIN_60,
+        //           color: Colors.white,
+        //         ),
+        //       ),
+        //     ),
+        //   ),
+        // ),
+        Container(
+          width: 200,
+          height: 150,
+          child: FittedBox(
+            fit: BoxFit.contain,
+            child: CupertinoSwitch(
+              value: vpnStage != "disconnected",
+              onChanged: (value) {
+                if (vpnStage == "disconnected") {
+                  var bloc = Provider.of<HomeBloc>(context, listen: false);
+                  bloc.onTapConnect();
+                } else {
+                  var bloc = Provider.of<HomeBloc>(context, listen: false);
+                  bloc.onTapDisconnect();
+                  bloc.clearDuration();
+                }
+              },
+              // thumbColor: Color.fromRGBO(27, 204, 115, 1.0),
+              activeColor: PRIMARY_COLOR,
             ),
           ),
         ),
-        SizedBox(height: MARGIN_XLARGE),
+        SizedBox(height: MARGIN_MEDIUM_3),
         ConnectStatusView(status: getVpnStatus(vpnStage)),
       ],
     );

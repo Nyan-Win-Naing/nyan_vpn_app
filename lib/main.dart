@@ -1,8 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:nyan_vpn_app/pages/home_page.dart';
 
-void main() {
+void main() async {
   runApp(const MyApp());
   configLoading();
 }
